@@ -1,0 +1,1128 @@
+{
+  "name": "gmailworkflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [],
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        64
+      ],
+      "id": "f05b45ad-0054-46e2-af17-f1454e7443d4",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HNUDzcgifdQF0vNf",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "=Mail Başlığı: {{ $json.headers.subject }}\nmail: içeriği: {{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "iş başvuru",
+              "description": "bu mailler iş başvuru neticesinde dönüş yapılan mailleri içerir."
+            },
+            {
+              "category": "sosyal medya",
+              "description": "instagram, linedln, youtube gibi platformlardan gelen bildirimleri kapsar."
+            },
+            {
+              "category": "finans",
+              "description": "fatura, e-arşiv faturası ve fiş gibi mailleri içerir"
+            },
+            {
+              "category": "reklam",
+              "description": "promosyon, tanıtım, indirim gibi mailler"
+            },
+            {
+              "category": "diğer",
+              "description": "hiç bir seçeneğe uymayan mailler"
+            },
+            {
+              "category": "güvenlik ",
+              "description": "güvenlikle, hesabına giriş ile ilgili uyarı  mesajları içerir."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7eeab5b7-cbbf-4738-b3a2-f28808579210",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        208,
+        368
+      ],
+      "id": "b90758c6-4026-4bab-8b8d-2c0794b332b9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PAEH1GL7vTLNkbOw",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_7383094348596773751"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        336
+      ],
+      "id": "e28cae92-6a35-4e0e-9595-f93d0e8abab2",
+      "name": "label ekle(reklam)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        336
+      ],
+      "id": "34419e25-a4da-4256-9f66-850322158f3d",
+      "name": "Okundu olarak işaretle (Reklam)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U02T8G5JCUB",
+          "mode": "list",
+          "cachedResultName": "ozlemaltintas857"
+        },
+        "text": "=yeni mail:\ngönderen:{{ $('Gmail Trigger').item.json.from.value[0].address }}\nbaşlık:{{ $json.message.content.subject }}\niçerik: {{ $json.message.content.message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        336
+      ],
+      "id": "abbaa019-9c75-49dd-9820-614e91124827",
+      "name": "Send a message",
+      "webhookId": "97140afe-f4e7-4698-885d-a8f84afc27ce",
+      "credentials": {
+        "slackApi": {
+          "id": "VKEx3F0CN5Q9IVv8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cfa48231-e66f-451f-a3ca-f574903b29bf",
+              "leftValue": "={{ JSON.parse($json.content.parts[0].text.match(/{[\\s\\S]*}/)[0]).aksiyonAlinmali }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "757c4cbd-7ce1-4d84-8f9b-c332113f87ac",
+              "leftValue": false,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        -160
+      ],
+      "id": "834fac04-9f15-4f49-a2c0-5f3fdfdf529e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-lite-preview-09-2025",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-lite-preview-09-2025"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=e mail başlık :{{ $('Gmail Trigger').item.json.headers.subject }}\ne mail içerik :{{ $('Gmail Trigger').item.json.text }}"
+            },
+            {
+              "content": "=sen sana verilen mailleri analiz edebilen  uzman birisin.\nYapman gereken sana verilen mail içeriklerini\nanaliz ederek alınması gereken önemli bir\naksiyon olma durumunda nasıl bir aksiyon\nalınacağına dair bir özet oluşturup mesaj\nolarak iletmek.\n\n#Kurallar\n- Önemli aksiyonlar şunları içermelidir\n  1. Hesabınızın şifresi değiştirildi\n  2. Hesabınız güvende olmayabilir\n  3. Hesabınıza farklı bir cihazdan erişildi\n- Hangi sosyal medya platformunda aksiyon\nalınması gerektiğini mesaj içeriğinde\nKESİNLİKLE belirt\n- Çıktı parametresinde belirtilen\n\"aksiyonAlinmali\" değeri önemli bir aksiyon\nalınması gerektiği durumda boolean olarak\n\"true\", olmama durumunda \"false\" olarak çıktı\nvermelidir. \n- YANIT OLARAK SADECE HAM (RAW) JSON METNİ DÖNDÜR. ASLA ```json GİBİ MARKDOWN KOD BLOKLARI KULLANMA. ÇIKTIN { İLE BAŞLAMALI VE } İLE BİTMELİ.\n\n#JSON Output\n{\n  \"message\": \"Aksiyon alınması gereken mesaj\niçeriği\",\n  \"aksiyon Alinmali\": false\n}",
+              "role": "model"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        672
+      ],
+      "id": "4cd8b54f-975e-4058-8848-e215a776cf50",
+      "name": "aksiyon alıcı1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PAEH1GL7vTLNkbOw",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f6803ca9-800a-4619-9069-96ad7de9769e",
+              "leftValue": "={{ JSON.parse($json.content.parts[0].text)[\"aksiyon Alinmali\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ea6844cc-7b58-41d7-843a-8ca0f6ceaa04",
+              "leftValue": false,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        672
+      ],
+      "id": "125afbfe-e10d-443e-a162-99f14510d522",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        -80
+      ],
+      "id": "a5e598e6-3e2f-4e95-b418-c1e1bb309c76",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        736
+      ],
+      "id": "b54dfafd-3a3a-4a09-918e-eed79a25400d",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U02T8G5JCUB",
+          "mode": "list",
+          "cachedResultName": "ozlemaltintas857"
+        },
+        "text": "={{ $json.content.parts[0].text }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        544
+      ],
+      "id": "bd49142e-9735-495a-959d-a1d6ef613054",
+      "name": "Send a message1",
+      "webhookId": "02e5b732-c0ea-4db3-94d4-5bd97f9817be",
+      "credentials": {
+        "slackApi": {
+          "id": "VKEx3F0CN5Q9IVv8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U02T8G5JCUB",
+          "mode": "list",
+          "cachedResultName": "ozlemaltintas857"
+        },
+        "text": "={{ $json.content.parts[0].text }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1616,
+        -240
+      ],
+      "id": "e03947e6-8173-45bb-8d24-2fdfca365d14",
+      "name": "Send a message2",
+      "webhookId": "02e5b732-c0ea-4db3-94d4-5bd97f9817be",
+      "credentials": {
+        "slackApi": {
+          "id": "VKEx3F0CN5Q9IVv8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Mail Başlık :  {{ $('Gmail Trigger').item.json.headers.subject }}\nMail İçerik: {{ $('Gmail Trigger').item.json.text }}"
+            },
+            {
+              "content": "Sen gelen mail ve başlık içeriğine göre önemli noktaları özet çıkaran bir yardımcı asistansın. ekstra bilgiler ekleme yalnızca özeti çıkart. ",
+              "role": "system"
+            },
+            {
+              "content": "Çıktı formatı aşağıdaki gibi olmalı\n#json çıktı formatı\n{\n \"subject\": \"Özet mail başlığı\",\n \"message\": \"özet mail içeriği\"\n}",
+              "role": "assistant"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1056,
+        336
+      ],
+      "id": "5ef09ec7-5802-4e80-9bf1-eb37c3e16917",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "VwtiBSAWPo4GBzyn",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=e mail başlık :{{ $('Gmail Trigger').item.json.headers.subject }}\ne mail içerik : {{ $('Gmail Trigger').item.json.text }}"
+            },
+            {
+              "content": "sen mailleri analiz edebilen uzman birisin.\nYapman gereken sana verilen mail içeriklerini\nanaliz ederek alınması gereken önemli bir\naksiyon olma durumunda nasıl bir aksiyon\nalınacağına dair bir özet oluşturup mesaj\nolarak iletmek.\n\n#Kurallar\n- Önemli aksiyonlar şunları içermelidir\n1. Hesabınızın şifresi değiştirildi\n2. Hesabınız güvende olmayabilir\n3. Hesabınıza farklı bir cihazdan erişildi\n- Hangi sosyal medya platformunda aksiyon\nalınması gerektiğinde mesaj içeriğinde\nKESİNLİKLE belirt\n- Çıktı parametresinde belirtilen\n\"aksiyonAlinmali\" değeri önemli bir aksiyon\nalınması gerektiği durumda boolean olarak\n\"true\", olmama durumunda \"false\" olarak çıktı\nvermelidir\n\n#JSON Output\n{\n\"message\": \"Aksiyon alınması gereken mesaj\niçeriği\",\n\"aksiyonAlinmali\": false\n}",
+              "role": "system"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1040,
+        -160
+      ],
+      "id": "0bb0f2bf-53ed-42a7-bb9e-daaa4b2079bd",
+      "name": "Sosyal medya Aksiyon Alıcı",
+      "credentials": {
+        "openAiApi": {
+          "id": "VwtiBSAWPo4GBzyn",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "=mail gönderen: {{ $('Gmail Trigger').item.json.from.value[0].address }}\nmail başlık: {{ $('Gmail Trigger').item.json.subject }}\nmail içerik: {{ $('Gmail Trigger').item.json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"urun\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"FirmaAdi\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"FaturaTutar\": {\n\t\t\t\t\"type\": \"number\"\n\t\t\t}\n\t\t}\n\t}\n}",
+        "options": {
+          "systemPromptTemplate": "sen verilen text içerisinden gerekli bilgileri çıkartmada uzmansın. yalnızca Schema içinde belirtilen bilgileri çıkart.\ntüm verilen texti tarayarak istenen bilgileri çıkart. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        144
+      ],
+      "id": "3e965021-554f-4030-85e4-3e8b49e18289",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        240
+      ],
+      "id": "192fc378-41d2-4653-97db-395772297a84",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "VwtiBSAWPo4GBzyn",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AqiX4Q0FldNEjFzRbSJyXYCuf2fakQ8zxz4vFBxGyls",
+          "mode": "list",
+          "cachedResultName": "Finans Fatura/fiş",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AqiX4Q0FldNEjFzRbSJyXYCuf2fakQ8zxz4vFBxGyls/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sayfa1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AqiX4Q0FldNEjFzRbSJyXYCuf2fakQ8zxz4vFBxGyls/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ürün": "={{ $json.output.urun }}",
+            "Firma Adı": "={{ $json.output.FirmaAdi }}",
+            "kayıt tarih": "={{ $now.format('dd/mm/yyyy') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ürün",
+              "displayName": "ürün",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Firma Adı",
+              "displayName": "Firma Adı",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fatura tutar",
+              "displayName": "fatura tutar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kayıt tarih",
+              "displayName": "kayıt tarih",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1840,
+        144
+      ],
+      "id": "ebca3ccc-0c63-4a45-bc53-ac526a7e2370",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "EXThIBQFvpWHZHkU",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_7929828065168547877"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        672
+      ],
+      "id": "76971b2f-a8da-4192-9612-013504b046b3",
+      "name": "label ekle(güvenlik)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        672
+      ],
+      "id": "4692a4fd-e729-4e0c-88b5-24c4cf35fa36",
+      "name": "Okundu olarak işaretle (güvenlik)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        144
+      ],
+      "id": "ccc369c3-03bb-4e6a-a838-2328636fba76",
+      "name": "Okundu olarak işaretle (finans)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_54305403923642263"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        -160
+      ],
+      "id": "c90f067f-7bdc-4c17-af14-1cfdfca57970",
+      "name": "label ekle(sosyalmedya)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -160
+      ],
+      "id": "b080fb7a-1373-4f68-8be9-8cfd097ac9ed",
+      "name": "Okundu olarak işaretle (sosyalmedya)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U02T8G5JCUB",
+          "mode": "list",
+          "cachedResultName": "ozlemaltintas857"
+        },
+        "text": "=#yeni bir fatura eklendi.#\nürün:{{ $json['ürün'] }}\nfirma:{{ $json['Firma Adı'] }}\ntutar:",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2160,
+        144
+      ],
+      "id": "a3f2a570-2416-45ee-8684-538645f421cf",
+      "name": "Mesaj gönder",
+      "webhookId": "c09fcd67-d772-4f19-86c1-b45bceb57582",
+      "credentials": {
+        "slackApi": {
+          "id": "VKEx3F0CN5Q9IVv8",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_2513257455452373505"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        144
+      ],
+      "id": "6e66cbaf-5c66-45e8-a0bb-49928c54e82e",
+      "name": "label ekle(finans)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_9183961626407923722"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        -16
+      ],
+      "id": "5f6ce3d2-b453-4ab1-8861-1b9343656b8f",
+      "name": "label ekle(iş)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -16
+      ],
+      "id": "cb9fcc00-97eb-4cce-bffb-9f935ebd7a3c",
+      "name": "Okundu olarak işaretle (iş)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_8949699272593692647"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        496
+      ],
+      "id": "d4e12629-1d9a-48a2-9f3c-84af6b21423b",
+      "name": "label ekle(diğer)",
+      "webhookId": "c2260670-10a4-4750-b509-a2d4ae7e0d3d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8FnQ2OIuyqmZRMg4",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        496
+      ],
+      "id": "fca936be-ba9a-4caa-b6cc-5e8804b6b8fc",
+      "name": "Okundu olarak işaretle (diğer)",
+      "webhookId": "b294dd6d-3ff7-4a41-a89d-3d8dd09a6567",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9S8OV2FWiyrKp4AD",
+          "name": "Gmail account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "label ekle(iş)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "label ekle(sosyalmedya)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "label ekle(finans)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "label ekle(reklam)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "label ekle(diğer)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "label ekle(güvenlik)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(reklam)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (Reklam)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Okundu olarak işaretle (Reklam)": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aksiyon alıcı1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sosyal medya Aksiyon Alıcı": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(güvenlik)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (güvenlik)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Okundu olarak işaretle (güvenlik)": {
+      "main": [
+        [
+          {
+            "node": "aksiyon alıcı1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Okundu olarak işaretle (finans)": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(sosyalmedya)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (sosyalmedya)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Okundu olarak işaretle (sosyalmedya)": {
+      "main": [
+        [
+          {
+            "node": "Sosyal medya Aksiyon Alıcı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Mesaj gönder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(finans)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (finans)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(iş)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (iş)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label ekle(diğer)": {
+      "main": [
+        [
+          {
+            "node": "Okundu olarak işaretle (diğer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "744ec42a-7d8b-439c-a02d-3d8df74b018b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc465b408fab2784e18a632cb80bd73453db85962a4b6319169b38e56143130b"
+  },
+  "id": "imPpQgmj19r0bMQW",
+  "tags": []
+}
